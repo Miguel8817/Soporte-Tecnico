@@ -7,12 +7,14 @@ import DashboardLayout from '@/components/shared/DashboardLayout';
 import SlaBadge from '@/components/shared/SlaBadge';
 import ModalFeedback from '@/components/tickets/ModalFeedback';
 import ChatTicketModal from '@/components/tickets/ChatTicketModal';
+import { useToast } from '@/context/ToastContext';
 import { authService } from '@/services/authService';
 import { ticketService } from '@/services/ticketService';
 import { Ticket } from '@/types/ticket';
 
 export default function EmpleadoDashboard() {
   const router = useRouter();
+  const { mostrarToast } = useToast();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -55,7 +57,7 @@ export default function EmpleadoDashboard() {
       const data = await ticketService.obtenerHistorial(ticketId);
       setHistorialTicket(data);
     } catch (err: any) {
-      alert(err.message || 'Error al cargar historial');
+      mostrarToast(err.message || 'Error al cargar historial', 'error', 'Error');
     }
   };
 

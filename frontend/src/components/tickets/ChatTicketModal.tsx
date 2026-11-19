@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useToast } from '@/context/ToastContext';
 import { interaccionService, MensajeChat } from '@/services/interaccionService';
 
 interface ChatTicketModalProps {
@@ -11,6 +12,7 @@ interface ChatTicketModalProps {
 }
 
 export default function ChatTicketModal({ isOpen, ticketId, usuarioCodigo, onClose }: ChatTicketModalProps) {
+  const { mostrarToast, confirmarAccion } = useToast();
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -47,7 +49,7 @@ export default function ChatTicketModal({ isOpen, ticketId, usuarioCodigo, onClo
       setTexto('');
       cargarMensajes();
     } catch (err: any) {
-      alert(err.message || 'Error enviando mensaje');
+      mostrarToast(err.message || 'Error al enviar mensaje', 'error', 'Error en Chat');
     } finally {
       setEnviando(false);
     }
@@ -65,19 +67,28 @@ export default function ChatTicketModal({ isOpen, ticketId, usuarioCodigo, onClo
       setEditandoId(null);
       setTextoEdicion('');
       cargarMensajes();
+      mostrarToast('Mensaje actualizado correctamente', 'success', 'Mensaje Editado');
     } catch (err: any) {
-      alert(err.message || 'Error editando mensaje');
+      mostrarToast(err.message || 'Error editando mensaje', 'error', 'Error en Chat');
     }
   };
 
   const handleEliminarMensaje = async (mensajeId: string) => {
-    if (!confirm('¿Deseas eliminar este mensaje?')) return;
-    try {
-      await interaccionService.eliminarMensaje(ticketId, mensajeId);
-      cargarMensajes();
-    } catch (err: any) {
-      alert(err.message || 'Error eliminando mensaje');
-    }
+    confirmarAccion({
+      titulo: 'Eliminar Mensaje',
+      mensaje: '¿Deseas eliminar este mensaje del ticket? La acción quedará registrada en el historial de auditoría.',
+      tipoBoton: 'danger',
+      textoConfirmar: 'Eliminar Mensaje',
+      onConfirm: async () => {
+        try {
+          await interaccionService.eliminarMensaje(ticketId, mensajeId);
+          mostrarToast('Mensaje eliminado del chat', 'info', 'Mensaje Eliminado');
+          cargarMensajes();
+        } catch (err: any) {
+          mostrarToast(err.message || 'Error eliminando mensaje', 'error', 'Error en Chat');
+        }
+      }
+    });
   };
 
   return (

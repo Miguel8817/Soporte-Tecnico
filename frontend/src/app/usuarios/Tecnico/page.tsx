@@ -6,12 +6,14 @@ import DashboardLayout from '@/components/shared/DashboardLayout';
 import SlaBadge from '@/components/shared/SlaBadge';
 import ModalRechazo from '@/components/tickets/ModalRechazo';
 import ChatTicketModal from '@/components/tickets/ChatTicketModal';
+import { useToast } from '@/context/ToastContext';
 import { authService } from '@/services/authService';
 import { ticketService } from '@/services/ticketService';
 import { Ticket } from '@/types/ticket';
 
 export default function TecnicoDashboard() {
   const router = useRouter();
+  const { mostrarToast } = useToast();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -58,9 +60,10 @@ export default function TecnicoDashboard() {
     try {
       setGuardando(true);
       await ticketService.aceptarTicket(id);
+      mostrarToast('Ticket aceptado y asignado a su bandeja de trabajo activa.', 'success', 'Ticket Aceptado');
       cargarBandeja();
     } catch (err: any) {
-      alert(err.message || 'Error al aceptar ticket');
+      mostrarToast(err.message || 'Error al aceptar ticket', 'error', 'Error');
     } finally {
       setGuardando(false);
     }
@@ -68,25 +71,31 @@ export default function TecnicoDashboard() {
 
   const handleRechazar = async (motivo: string) => {
     if (!ticketParaRechazo) return;
-    await ticketService.rechazarTicket(ticketParaRechazo, motivo);
-    setTickets((prev) => prev.filter((t) => t.id !== ticketParaRechazo));
-    setTicketParaRechazo(null);
+    try {
+      await ticketService.rechazarTicket(ticketParaRechazo, motivo);
+      mostrarToast('Ticket liberado y devuelto a la cola de atención.', 'info', 'Ticket Rechazado');
+      setTickets((prev) => prev.filter((t) => t.id !== ticketParaRechazo));
+      setTicketParaRechazo(null);
+    } catch (err: any) {
+      mostrarToast(err.message || 'Error al rechazar ticket', 'error', 'Error');
+    }
   };
 
   const handleResolver = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticketParaResolver || solucionTexto.trim().length < 5) {
-      alert('Especifique la solución aplicada (mínimo 5 caracteres).');
+      mostrarToast('Especifique la solución técnica aplicada (mínimo 5 caracteres).', 'warning', 'Solución Incompleta');
       return;
     }
     try {
       setGuardando(true);
       await ticketService.resolverTicket(ticketParaResolver, solucionTexto);
+      mostrarToast('Ticket marcado como resuelto satisfactoriamente. Se solicitó calificación al empleado.', 'success', 'Caso Resuelto');
       setTicketParaResolver(null);
       setSolucionTexto('');
       cargarBandeja();
     } catch (err: any) {
-      alert(err.message || 'Error al resolver ticket');
+      mostrarToast(err.message || 'Error al resolver ticket', 'error', 'Error');
     } finally {
       setGuardando(false);
     }
@@ -95,17 +104,17 @@ export default function TecnicoDashboard() {
   const handleSolicitarExtension = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticketParaExtension || motivoExtension.trim().length < 5) {
-      alert('Detalle el motivo de la solicitud.');
+      mostrarToast('Detalle el motivo justificado de la solicitud de tiempo adicional.', 'warning', 'Motivo Requerido');
       return;
     }
     try {
       setGuardando(true);
       await ticketService.solicitarExtensionSLA(ticketParaExtension, motivoExtension, minutosExtension);
-      alert('Solicitud de extensión enviada al administrador. Recibirás una notificación cuando sea evaluada.');
+      mostrarToast('Solicitud de extensión SLA enviada al administrador. Recibirás una notificación cuando sea evaluada.', 'info', 'Solicitud Enviada');
       setTicketParaExtension(null);
       setMotivoExtension('');
     } catch (err: any) {
-      alert(err.message || 'Error al solicitar extensión');
+      mostrarToast(err.message || 'Error al solicitar extensión', 'error', 'Error');
     } finally {
       setGuardando(false);
     }

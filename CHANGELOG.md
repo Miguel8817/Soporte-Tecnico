@@ -34,7 +34,19 @@ Este documento detalla todas las mejoras técnicas, funcionales, de seguridad, a
 
 ### 2. Nivel de Experiencia de Usuario e Interfaz (Frontend Next.js + CSS Modular)
 
-#### A. Botón de Alternar Estado de Acceso de Usuario
+#### A. Sistema Centralizado de Notificaciones en Tarjeta (Toasts & Diálogos Modales)
+* **Eliminación Total de `alert()` y `confirm()` del Navegador**:
+  * Se erradicó por completo el uso de alertas nativas de JavaScript que mostraban la ventana emergente predeterminada con el texto "localhost dice...".
+  * Se implementó un nuevo proveedor de contexto `ToastProvider` (`src/context/ToastContext.tsx`), envuelto a nivel global en el `RootLayout` (`src/app/layout.tsx`).
+* **Tarjetas de Notificación Flotantes (Toasts)**:
+  * Mensajes emergentes en tarjetas con diseño institucional INABIE (éxito, error, advertencia e información) con barra de progreso, auto-cierre a los 4.5 segundos y botón de descarte rápido.
+* **Diálogos de Confirmación Elegantes**:
+  * Sustitución de `confirm()` por una tarjeta modal centrada con fondo difuminado (*backdrop-blur*), títulos contextuales y botones semánticos (`danger`, `primary`, `warning`) para confirmaciones críticas:
+    * Activar o desactivar usuario.
+    * Eliminación definitiva de colaboradores.
+    * Eliminación de mensajes en el chat del ticket.
+
+#### B. Botón de Alternar Estado de Acceso de Usuario
 * En el panel de Administrador (`usuarios`), el botón **"⏸ Desactivar / ▶ Activar"**:
   * Pide confirmación al administrador antes de ejecutar la acción.
   * Envía el estado explícito a la API (`!u.activo`).

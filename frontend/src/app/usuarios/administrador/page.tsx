@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/shared/DashboardLayout';
+import { useToast } from '@/context/ToastContext';
 import { authService } from '@/services/authService';
 import { userService } from '@/services/userService';
 import { ticketService } from '@/services/ticketService';
@@ -13,6 +14,7 @@ import '@/app/styles/Users/admin.css';
 
 export default function AdministradorDashboard() {
   const router = useRouter();
+  const { mostrarToast, confirmarAccion } = useToast();
   const [usuario, setUsuario] = useState<any>(null);
   const [metricas, setMetricas] = useState<any>(null);
   const [usuarios, setUsuarios] = useState<User[]>([]);
@@ -97,9 +99,9 @@ export default function AdministradorDashboard() {
       setNuevoDepto('');
       setNuevoCorreo('');
       cargarDatos();
-      alert('Usuario creado exitosamente');
+      mostrarToast('Usuario institucional registrado correctamente', 'success', 'Usuario Creado');
     } catch (err: any) {
-      alert(err.message || 'Error al crear usuario');
+      mostrarToast(err.message || 'Error al crear usuario', 'error', 'Error');
     } finally {
       setCreandoUser(false);
     }
@@ -126,11 +128,11 @@ export default function AdministradorDashboard() {
         rol: editRol,
         activo: editActivo,
       });
-      alert('Usuario actualizado exitosamente');
+      mostrarToast('Usuario institucional actualizado correctamente', 'success', 'Actualizado');
       setUsuarioParaEditar(null);
       cargarDatos();
     } catch (err: any) {
-      alert(err.message || 'Error al actualizar usuario');
+      mostrarToast(err.message || 'Error al actualizar usuario', 'error', 'Error');
     } finally {
       setGuardandoEdicion(false);
     }
@@ -138,44 +140,58 @@ export default function AdministradorDashboard() {
 
   const handleAlternarEstadoUsuario = async (u: User) => {
     const accion = u.activo ? 'desactivar' : 'activar';
-    if (!confirm(`¿Deseas ${accion} el acceso al usuario "${u.nombre}" (${u.codigo_empleado})?`)) return;
-    try {
-      const res = await userService.desactivarUsuario(u.id, !u.activo);
-      alert(res?.mensaje || `Usuario ${accion}do exitosamente`);
-      cargarDatos();
-    } catch (err: any) {
-      alert(err.message || 'Error al alternar estado de usuario');
-    }
+    confirmarAccion({
+      titulo: `${accion.charAt(0).toUpperCase() + accion.slice(1)} Acceso de Usuario`,
+      mensaje: `¿Deseas ${accion} el acceso institucional al usuario "${u.nombre}" (${u.codigo_empleado})?`,
+      tipoBoton: u.activo ? 'warning' : 'primary',
+      textoConfirmar: u.activo ? 'Desactivar' : 'Activar',
+      onConfirm: async () => {
+        try {
+          const res = await userService.desactivarUsuario(u.id, !u.activo);
+          mostrarToast(res?.mensaje || `Usuario ${accion}do exitosamente`, 'success', 'Estado Actualizado');
+          cargarDatos();
+        } catch (err: any) {
+          mostrarToast(err.message || 'Error al alternar estado de usuario', 'error', 'Error');
+        }
+      }
+    });
   };
 
   const handleEliminarUsuarioDefinitivo = async (id: string, nombre: string) => {
-    if (!confirm(`¿Estás SEGURO de eliminar definitivamente al usuario "${nombre}" de la base de datos? Esta acción es irreversible.`)) return;
-    try {
-      await userService.eliminarUsuarioDefinitivo(id);
-      alert('Usuario eliminado permanentemente');
-      cargarDatos();
-    } catch (err: any) {
-      alert(err.message || 'Error al eliminar usuario');
-    }
+    confirmarAccion({
+      titulo: 'Eliminar Usuario Definitivamente',
+      mensaje: `¿Estás seguro de eliminar permanentemente a "${nombre}" de la base de datos? Esta acción es irreversible y eliminará todos sus registros asociados.`,
+      tipoBoton: 'danger',
+      textoConfirmar: 'Eliminar Permanente',
+      onConfirm: async () => {
+        try {
+          await userService.eliminarUsuarioDefinitivo(id);
+          mostrarToast('Usuario eliminado permanentemente del sistema', 'success', 'Usuario Eliminado');
+          cargarDatos();
+        } catch (err: any) {
+          mostrarToast(err.message || 'Error al eliminar usuario', 'error', 'Error');
+        }
+      }
+    });
   };
 
   const handleAprobarExtension = async (ticketId: string) => {
     try {
       await userService.aprobarExtension(ticketId);
-      alert('Extensión de tiempo SLA aprobada. Se ha notificado al técnico.');
+      mostrarToast('Extensión de tiempo SLA aprobada. Se ha notificado al técnico.', 'success', 'SLA Aprobado');
       cargarDatos();
     } catch (err: any) {
-      alert(err.message || 'Error al aprobar extensión');
+      mostrarToast(err.message || 'Error al aprobar extensión', 'error', 'Error');
     }
   };
 
   const handleRechazarExtension = async (ticketId: string) => {
     try {
       await userService.rechazarExtension(ticketId);
-      alert('Extensión rechazada. Se ha notificado al técnico.');
+      mostrarToast('Extensión rechazada. Se ha notificado al técnico correspondiente.', 'info', 'SLA Rechazado');
       cargarDatos();
     } catch (err: any) {
-      alert(err.message || 'Error al rechazar extensión');
+      mostrarToast(err.message || 'Error al rechazar extensión', 'error', 'Error');
     }
   };
 
@@ -183,9 +199,9 @@ export default function AdministradorDashboard() {
     const limite = limitesTecnicos[tecnicoId] || 5;
     try {
       await userService.actualizarConfigTecnico(tecnicoId, limite);
-      alert(`Límite de ${limite} tickets asignado correctamente`);
+      mostrarToast(`Límite de ${limite} tickets simultáneos asignado correctamente`, 'success', 'Configuración Guardada');
     } catch (err: any) {
-      alert(err.message || 'Error al actualizar configuración');
+      mostrarToast(err.message || 'Error al actualizar configuración', 'error', 'Error');
     }
   };
 
@@ -193,12 +209,12 @@ export default function AdministradorDashboard() {
     if (!ticketParaReasignar || !tecnicoSeleccionado) return;
     try {
       await ticketService.reasignarTicket(ticketParaReasignar, tecnicoSeleccionado);
-      alert('Ticket reasignado exitosamente');
+      mostrarToast('Ticket reasignado exitosamente al nuevo técnico', 'success', 'Reasignación Exitosa');
       setTicketParaReasignar(null);
       setTecnicoSeleccionado('');
       cargarDatos();
     } catch (err: any) {
-      alert(err.message || 'Error al reasignar');
+      mostrarToast(err.message || 'Error al reasignar', 'error', 'Error');
     }
   };
 
