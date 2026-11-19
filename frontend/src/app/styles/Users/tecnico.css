@@ -1,0 +1,60 @@
+/* =========================================================================
+   ESTILOS PARA EL PANEL DE TÉCNICO INABIE
+   ========================================================================= */
+
+.tecnico-ticket-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  padding: 1.25rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.tecnico-ticket-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e1;
+}
+
+.dark .tecnico-ticket-card {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.dark .tecnico-ticket-card:hover {
+  border-color: #475569;
+}
+
+.tecnico-btn-chat {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  background-color: #eff6ff;
+  color: #1D70B8;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.tecnico-btn-chat:hover {
+  background-color: #dbeafe;
+}
+
+.dark .tecnico-btn-chat {
+  background-color: rgba(30, 58, 138, 0.3);
+  color: #93c5fd;
+}
+
+.dark .tecnico-btn-chat:hover {
+  background-color: rgba(30, 58, 138, 0.5);
+}
+

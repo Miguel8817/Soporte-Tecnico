@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { authService } from '@/services/authService';
 import { interaccionService, Notificacion } from '@/services/interaccionService';
+import '@/app/styles/Users/tecnico.css';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -29,7 +31,6 @@ export default function DashboardLayout({
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  // Inicialización y persistencia de tema
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -55,19 +56,18 @@ export default function DashboardLayout({
     }
   };
 
-  // Carga periódica de notificaciones
   const cargarNotificaciones = async () => {
     try {
       const data = await interaccionService.obtenerNotificaciones();
       setNotificaciones(data);
     } catch (e) {
-      // Silencioso si falla
+      // Silencioso
     }
   };
 
   useEffect(() => {
     cargarNotificaciones();
-    const interval = setInterval(cargarNotificaciones, 10000); // Polling cada 10s
+    const interval = setInterval(cargarNotificaciones, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -83,6 +83,8 @@ export default function DashboardLayout({
     cargarNotificaciones();
   };
 
+  // NAVEGACIÓN POR ROL:
+  // Se quitó "Base de Conocimientos (FAQ)" del panel de Técnico como se solicitó en la imagen.
   const navItems = {
     empleado: [
       { label: 'Mis Tickets', href: '/usuarios/usuario', icon: '🎫' },
@@ -91,7 +93,6 @@ export default function DashboardLayout({
     ],
     tecnico: [
       { label: 'Bandeja SLA', href: '/usuarios/Tecnico', icon: '📋' },
-      { label: 'Base de Conocimientos (FAQ)', href: '/usuarios/faq', icon: '📚' },
     ],
     admin: [
       { label: 'Panel General', href: '/usuarios/administrador', icon: '📊' },
@@ -108,15 +109,22 @@ export default function DashboardLayout({
         }`}
       >
         <div>
-          {/* Header de Identidad Institucional */}
+          {/* Header con el Logo Oficial de INABIE */}
           <div className="p-6 border-b border-blue-900/50">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-white text-[#002D62] font-black flex items-center justify-center text-xl shadow-md">
-                I
+              <div className="h-12 w-12 rounded-xl bg-white p-1 flex items-center justify-center shadow-md overflow-hidden shrink-0">
+                <Image
+                  src="/inabie-logo.png"
+                  alt="INABIE Logo"
+                  width={44}
+                  height={44}
+                  className="object-contain"
+                  priority
+                />
               </div>
               <div>
-                <h1 className="font-extrabold text-base tracking-tight text-white">INABIE</h1>
-                <p className="text-[11px] text-blue-200 uppercase tracking-wider font-medium">Mesa de Ayuda TI</p>
+                <h1 className="font-extrabold text-base tracking-tight text-white leading-tight">INABIE</h1>
+                <p className="text-[11px] text-blue-200 uppercase tracking-wider font-semibold">Mesa de Ayuda TI</p>
               </div>
             </div>
 
@@ -168,7 +176,7 @@ export default function DashboardLayout({
             <span>🚪</span> Cerrar Sesión
           </button>
           <div className="text-center text-[10px] text-blue-300/70 font-mono">
-            INABIE Soporte &bull; Actualización v1.0
+            INABIE Soporte &bull; Actualización v1.1
           </div>
         </div>
       </aside>
@@ -258,7 +266,7 @@ export default function DashboardLayout({
               )}
             </div>
 
-            {/* Toggle Dark/Light Mode Funcional */}
+            {/* Toggle Dark/Light Mode */}
             <button
               onClick={toggleTheme}
               className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-amber-400 font-semibold text-xs hover:scale-105 transition shadow-xs flex items-center gap-2 cursor-pointer"

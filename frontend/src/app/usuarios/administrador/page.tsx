@@ -9,6 +9,7 @@ import { ticketService } from '@/services/ticketService';
 import { interaccionService } from '@/services/interaccionService';
 import { User } from '@/types/user';
 import { Ticket } from '@/types/ticket';
+import '@/app/styles/Users/admin.css';
 
 export default function AdministradorDashboard() {
   const router = useRouter();
@@ -32,6 +33,15 @@ export default function AdministradorDashboard() {
   const [nuevoCorreo, setNuevoCorreo] = useState('');
   const [nuevoRol, setNuevoRol] = useState<'empleado' | 'tecnico' | 'admin'>('empleado');
   const [creandoUser, setCreandoUser] = useState(false);
+
+  // Estado para Edición de Usuario
+  const [usuarioParaEditar, setUsuarioParaEditar] = useState<User | null>(null);
+  const [editNombre, setEditNombre] = useState('');
+  const [editDepto, setEditDepto] = useState('');
+  const [editCorreo, setEditCorreo] = useState('');
+  const [editRol, setEditRol] = useState<'empleado' | 'tecnico' | 'admin'>('empleado');
+  const [editActivo, setEditActivo] = useState(true);
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   // Configuración de técnicos
   const [limitesTecnicos, setLimitesTecnicos] = useState<Record<string, number>>({});
@@ -95,13 +105,57 @@ export default function AdministradorDashboard() {
     }
   };
 
-  const handleDesactivarUsuario = async (id: string) => {
-    if (!confirm('¿Desea desactivar este usuario del sistema?')) return;
+  const handleAbrirEdicion = (u: User) => {
+    setUsuarioParaEditar(u);
+    setEditNombre(u.nombre);
+    setEditDepto(u.departamento);
+    setEditCorreo(u.correo);
+    setEditRol(u.rol);
+    setEditActivo(u.activo);
+  };
+
+  const handleGuardarEdicionUsuario = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!usuarioParaEditar) return;
     try {
-      await userService.desactivarUsuario(id);
+      setGuardandoEdicion(true);
+      await userService.actualizarUsuario(usuarioParaEditar.id, {
+        nombre: editNombre,
+        departamento: editDepto,
+        correo: editCorreo,
+        rol: editRol,
+        activo: editActivo,
+      });
+      alert('Usuario actualizado exitosamente');
+      setUsuarioParaEditar(null);
       cargarDatos();
     } catch (err: any) {
-      alert(err.message || 'Error al desactivar usuario');
+      alert(err.message || 'Error al actualizar usuario');
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
+
+  const handleAlternarEstadoUsuario = async (u: User) => {
+    const accion = u.activo ? 'desactivar' : 'activar';
+    if (!confirm(`¿Deseas ${accion} el acceso al usuario "${u.nombre}" (${u.codigo_empleado})?`)) return;
+    try {
+      const res = await userService.desactivarUsuario(u.id, !u.activo);
+      alert(res?.mensaje || `Usuario ${accion}do exitosamente`);
+      cargarDatos();
+    } catch (err: any) {
+      alert(err.message || 'Error al alternar estado de usuario');
+    }
+  };
+
+  const handleEliminarUsuarioDefinitivo = async (id: string, nombre: string) => {
+    if (!confirm(`¿Estás SEGURO de eliminar definitivamente al usuario "${nombre}" de la base de datos? Esta acción es irreversible.`)) return;
+    try {
+      await userService.eliminarUsuarioDefinitivo(id);
+      alert('Usuario eliminado permanentemente');
+      cargarDatos();
+    } catch (err: any) {
+      alert(err.message || 'Error al eliminar usuario');
     }
   };
 
@@ -160,50 +214,35 @@ export default function AdministradorDashboard() {
   const usuariosFiltrados = usuarios.filter((u) =>
     u.nombre.toLowerCase().includes(busquedaUser.toLowerCase()) ||
     u.codigo_empleado.toLowerCase().includes(busquedaUser.toLowerCase()) ||
-    u.departamento.toLowerCase().includes(busquedaUser.toLowerCase())
+    u.departamento.toLowerCase().includes(busquedaUser.toLowerCase()) ||
+    u.correo.toLowerCase().includes(busquedaUser.toLowerCase())
   );
 
   return (
     <DashboardLayout rol="admin" nombre={usuario?.nombre} codigo={usuario?.codigo} titulo="Supervisión General & Panel de Control">
-      {/* Selector de Pestañas con Estilo Institucional */}
-      <div className="flex flex-wrap gap-2 mb-6 bg-white dark:bg-[#1E293B] p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+      {/* Selector de Pestañas */}
+      <div className="admin-header-tabs">
         <button
           onClick={() => setPestana('kpis')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-            pestana === 'kpis'
-              ? 'bg-[#002D62] text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
+          className={`admin-tab-btn ${pestana === 'kpis' ? 'active' : ''}`}
         >
           📊 Métricas & KPIs
         </button>
         <button
           onClick={() => setPestana('tickets')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-            pestana === 'tickets'
-              ? 'bg-[#002D62] text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
+          className={`admin-tab-btn ${pestana === 'tickets' ? 'active' : ''}`}
         >
           🎫 Gestión de Tickets ({tickets.length})
         </button>
         <button
           onClick={() => setPestana('usuarios')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-            pestana === 'usuarios'
-              ? 'bg-[#002D62] text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
+          className={`admin-tab-btn ${pestana === 'usuarios' ? 'active' : ''}`}
         >
-          👥 Directorio de Usuarios ({usuarios.length})
+          👥 Gestión de Usuarios ({usuarios.length})
         </button>
         <button
           onClick={() => setPestana('extensiones')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition relative cursor-pointer ${
-            pestana === 'extensiones'
-              ? 'bg-[#002D62] text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
+          className={`admin-tab-btn ${pestana === 'extensiones' ? 'active' : ''}`}
         >
           ⏱ Solicitudes SLA
           {extensiones.length > 0 && (
@@ -214,21 +253,13 @@ export default function AdministradorDashboard() {
         </button>
         <button
           onClick={() => setPestana('config')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-            pestana === 'config'
-              ? 'bg-[#002D62] text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
+          className={`admin-tab-btn ${pestana === 'config' ? 'active' : ''}`}
         >
           ⚙️ Carga de Técnicos
         </button>
         <button
           onClick={() => setPestana('auditoria')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-            pestana === 'auditoria'
-              ? 'bg-[#002D62] text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
+          className={`admin-tab-btn ${pestana === 'auditoria' ? 'active' : ''}`}
         >
           🔒 Auditoría de Sesiones ({auditorias.length})
         </button>
@@ -239,22 +270,22 @@ export default function AdministradorDashboard() {
       ) : pestana === 'kpis' ? (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <div className="admin-kpi-card">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Incidencias</span>
               <p className="text-3xl font-black text-slate-900 dark:text-white mt-1">{metricas?.total_tickets || tickets.length}</p>
               <span className="text-[11px] text-slate-500">Tickets registrados</span>
             </div>
-            <div className="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <div className="admin-kpi-card">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#1D70B8]">Tickets Creados Hoy</span>
               <p className="text-3xl font-black text-[#1D70B8] mt-1">{metricas?.tickets_hoy || 0}</p>
               <span className="text-[11px] text-blue-600 dark:text-blue-400">Ingresos del día</span>
             </div>
-            <div className="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <div className="admin-kpi-card">
               <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-500">Cumplimiento SLA</span>
               <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{metricas?.cumplimiento_sla_porcentaje || 95.2}%</p>
               <span className="text-[11px] text-emerald-600 dark:text-emerald-400">Dentro del tiempo límite</span>
             </div>
-            <div className="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <div className="admin-kpi-card">
               <span className="text-[11px] font-bold uppercase tracking-wider text-amber-500">Satisfacción Promedio</span>
               <p className="text-3xl font-black text-amber-500 mt-1">★ {metricas?.promedio_satisfaccion || '5.0'}</p>
               <span className="text-[11px] text-amber-600 dark:text-amber-400">Encuestas post-servicio</span>
@@ -360,6 +391,7 @@ export default function AdministradorDashboard() {
         </div>
       ) : pestana === 'usuarios' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Formulario Crear Usuario */}
           <div className="bg-white dark:bg-[#1E293B] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs h-fit">
             <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Registrar Nuevo Personal</h3>
             <form onSubmit={handleCrearUsuario} className="space-y-4">
@@ -429,6 +461,7 @@ export default function AdministradorDashboard() {
             </form>
           </div>
 
+          {/* Tabla de Usuarios con Editar, Desactivar y Eliminar */}
           <div className="lg:col-span-2 bg-white dark:bg-[#1E293B] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Directorio Institucional</h3>
@@ -438,7 +471,7 @@ export default function AdministradorDashboard() {
                   type="text"
                   value={busquedaUser}
                   onChange={(e) => setBusquedaUser(e.target.value)}
-                  placeholder="Buscar usuario o depto..."
+                  placeholder="Buscar por código, nombre o correo..."
                   className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white"
                 />
               </div>
@@ -453,14 +486,17 @@ export default function AdministradorDashboard() {
                     <th className="p-3">Departamento</th>
                     <th className="p-3">Rol</th>
                     <th className="p-3">Estado</th>
-                    <th className="p-3">Acción</th>
+                    <th className="p-3 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {usuariosFiltrados.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                       <td className="p-3 font-mono font-bold">{u.codigo_empleado}</td>
-                      <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{u.nombre}</td>
+                      <td className="p-3">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 block">{u.nombre}</span>
+                        <span className="text-[10px] text-slate-400">{u.correo}</span>
+                      </td>
                       <td className="p-3 text-slate-600 dark:text-slate-400">{u.departamento}</td>
                       <td className="p-3 uppercase font-semibold text-[#1D70B8]">{u.rol}</td>
                       <td className="p-3">
@@ -470,15 +506,39 @@ export default function AdministradorDashboard() {
                           {u.activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
-                      <td className="p-3">
-                        {u.activo && (
+                      <td className="p-3 text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          {/* Editar */}
                           <button
-                            onClick={() => handleDesactivarUsuario(u.id)}
-                            className="text-rose-600 hover:text-rose-800 font-bold text-xs cursor-pointer"
+                            onClick={() => handleAbrirEdicion(u)}
+                            className="px-2.5 py-1 text-[11px] bg-blue-50 dark:bg-blue-950/40 text-[#1D70B8] hover:bg-blue-100 rounded-lg font-bold transition cursor-pointer"
+                            title="Editar datos del usuario"
                           >
-                            Desactivar
+                            ✏️ Editar
                           </button>
-                        )}
+
+                          {/* Desactivar / Activar */}
+                          <button
+                            onClick={() => handleAlternarEstadoUsuario(u)}
+                            className={`px-2.5 py-1 text-[11px] rounded-lg font-bold transition cursor-pointer ${
+                              u.activo
+                                ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300'
+                                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300'
+                            }`}
+                            title={u.activo ? 'Desactivar acceso al sistema' : 'Reactivar acceso al sistema'}
+                          >
+                            {u.activo ? '⏸ Desactivar' : '▶ Activar'}
+                          </button>
+
+                          {/* Eliminar Definitivo */}
+                          <button
+                            onClick={() => handleEliminarUsuarioDefinitivo(u.id, u.nombre)}
+                            className="px-2 py-1 text-[11px] text-rose-600 hover:text-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg font-bold transition cursor-pointer"
+                            title="Eliminar de la base de datos"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -613,10 +673,103 @@ export default function AdministradorDashboard() {
         </div>
       )}
 
+      {/* Modal Editar Usuario */}
+      {usuarioParaEditar && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-card">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+              Editar Usuario &bull; {usuarioParaEditar.codigo_empleado}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              Modifica los datos personales, área o nivel de acceso del colaborador.
+            </p>
+
+            <form onSubmit={handleGuardarEdicionUsuario} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre Completo:</label>
+                <input
+                  type="text"
+                  required
+                  value={editNombre}
+                  onChange={(e) => setEditNombre(e.target.value)}
+                  className="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Departamento:</label>
+                <input
+                  type="text"
+                  required
+                  value={editDepto}
+                  onChange={(e) => setEditDepto(e.target.value)}
+                  className="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Correo Electrónico:</label>
+                <input
+                  type="email"
+                  required
+                  value={editCorreo}
+                  onChange={(e) => setEditCorreo(e.target.value)}
+                  className="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Rol:</label>
+                  <select
+                    value={editRol}
+                    onChange={(e) => setEditRol(e.target.value as any)}
+                    className="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                  >
+                    <option value="empleado">Empleado</option>
+                    <option value="tecnico">Técnico</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Estado:</label>
+                  <select
+                    value={editActivo ? 'true' : 'false'}
+                    onChange={(e) => setEditActivo(e.target.value === 'true')}
+                    className="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white"
+                  >
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setUsuarioParaEditar(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardandoEdicion}
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#002D62] hover:bg-[#1D70B8] rounded-xl shadow-xs transition cursor-pointer"
+                >
+                  {guardandoEdicion ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal Reasignar Ticket */}
       {ticketParaReasignar && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-[#1E293B] rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700">
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-card">
             <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">Reasignar Ticket Manualmente</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               Selecciona el técnico que asumirá la responsabilidad de este caso.

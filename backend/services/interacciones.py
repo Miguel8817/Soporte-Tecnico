@@ -7,16 +7,18 @@ from utils.auth import obtener_usuario_actual
 from utils.db import get_supabase
 from utils.memory_state import (
     NOTIFICACIONES,
-    MENSAJES_CHAT,
     FAQ_ITEMS,
     AUDITORIA_SESIONES,
     agregar_notificacion
 )
 
-router = APIRouter(prefix="/api/v1", tags=["Interacciones, FAQ y Notificaciones"])
+router = APIRouter(prefix="/api/v1", tags=["Interacciones, FAQ, Mensajes y Notificaciones"])
 
 class MensajeChatCreate(BaseModel):
-    mensaje: str = Field(..., min_length=1, max_length=1000)
+    mensaje: str = Field(..., min_length=1, max_length=2000)
+
+class MensajeChatUpdate(BaseModel):
+    mensaje: str = Field(..., min_length=1, max_length=2000)
 
 class FaqCreate(BaseModel):
     titulo: str
@@ -28,7 +30,6 @@ class FaqCreate(BaseModel):
 @router.get("/notificaciones")
 def obtener_mis_notificaciones(usuario: dict = Depends(obtener_usuario_actual)):
     codigo = usuario.get("codigo_empleado")
-    # Retorna notificaciones para este usuario o globales
     mis_notifs = [n for n in NOTIFICACIONES if n.get("destinatario_codigo") == codigo]
     return mis_notifs
 
@@ -48,11 +49,34 @@ def marcar_todas_leidas(usuario: dict = Depends(obtener_usuario_actual)):
             n["leido"] = True
     return {"mensaje": "Todas marcadas como leídas"}
 
-# ----------------- MINI CHAT / MENSAJES DE TICKET -----------------
+# ----------------- MENSAJERÍA EN TICKETS (Tabla public.mensajes) -----------------
 @router.get("/tickets/{id}/mensajes")
 def obtener_mensajes_ticket(id: str, usuario: dict = Depends(obtener_usuario_actual)):
-    mensajes = [m for m in MENSAJES_CHAT if m.get("ticket_id") == id]
-    return mensajes
+    db = get_supabase()
+    try:
+        # Consultar la tabla public.mensajes con relación al usuario remitente
+        res = db.table("mensajes").select(
+            "id, ticket_id, remitente_id, tipo_mensaje, contenido, metadata, leido, creado_en, actualizado_en, editado_en, eliminado_en, users!mensajes_remitente_id_fkey(codigo_empleado, nombre, rol)"
+        ).eq("ticket_id", id).is_("eliminado_en", "null").order("creado_en", desc=False).execute()
+
+        mensajes_formateados = []
+        for m in (res.data or []):
+            u = m.get("users") or {}
+            mensajes_formateados.append({
+                "id": str(m["id"]),
+                "ticket_id": str(m["ticket_id"]),
+                "remitente_id": str(m.get("remitente_id") or ""),
+                "remitente_codigo": u.get("codigo_empleado", ""),
+                "remitente_nombre": u.get("nombre", "Usuario"),
+                "rol": u.get("rol", "empleado"),
+                "mensaje": m["contenido"],
+                "editado": m.get("editado_en") is not None,
+                "created_at": m.get("creado_en")
+            })
+        return mensajes_formateados
+    except Exception as e:
+        print(f"Error consultando mensajes de Supabase: {e}")
+        return []
 
 @router.post("/tickets/{id}/mensajes")
 def enviar_mensaje_ticket(id: str, req: MensajeChatCreate, usuario: dict = Depends(obtener_usuario_actual)):
@@ -62,22 +86,26 @@ def enviar_mensaje_ticket(id: str, req: MensajeChatCreate, usuario: dict = Depen
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
     
     ticket = ticket_res.data[0]
+    remitente_id = usuario.get("id")
     remitente_cod = usuario.get("codigo_empleado")
     remitente_rol = usuario.get("rol")
     remitente_nom = usuario.get("nombre")
 
-    nuevo_mensaje = {
-        "id": f"msg-{len(MENSAJES_CHAT) + 1}",
+    nuevo_row = {
         "ticket_id": id,
-        "remitente_codigo": remitente_cod,
-        "remitente_nombre": remitente_nom,
-        "rol": remitente_rol,
-        "mensaje": req.mensaje,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "remitente_id": remitente_id,
+        "tipo_mensaje": "texto",
+        "contenido": req.mensaje,
+        "metadata": {"enviado_desde": "web_frontend"}
     }
-    MENSAJES_CHAT.append(nuevo_mensaje)
 
-    # Si quien envía es el TÉCNICO -> Notificar al EMPLEADO solicitante
+    res = db.table("mensajes").insert(nuevo_row).execute()
+    if not res.data:
+        raise HTTPException(status_code=500, detail="Error al guardar el mensaje en base de datos")
+
+    mensaje_guardado = res.data[0]
+
+    # Notificaciones según rol
     if remitente_rol in ["tecnico", "admin"]:
         destinatario = ticket.get("codigo_empleado")
         agregar_notificacion(
@@ -87,9 +115,7 @@ def enviar_mensaje_ticket(id: str, req: MensajeChatCreate, usuario: dict = Depen
             tipo="info",
             ticket_id=id
         )
-    # Si quien envía es el EMPLEADO -> Notificar al TÉCNICO asignado
     else:
-        # Buscar código del técnico asignado
         tec_id = ticket.get("tecnico_id")
         if tec_id:
             tec_res = db.table("users").select("codigo_empleado").eq("id", tec_id).execute()
@@ -103,7 +129,56 @@ def enviar_mensaje_ticket(id: str, req: MensajeChatCreate, usuario: dict = Depen
                     ticket_id=id
                 )
 
-    return nuevo_mensaje
+    return {
+        "id": str(mensaje_guardado["id"]),
+        "ticket_id": id,
+        "remitente_id": str(remitente_id),
+        "remitente_codigo": remitente_cod,
+        "remitente_nombre": remitente_nom,
+        "rol": remitente_rol,
+        "mensaje": mensaje_guardado["contenido"],
+        "editado": False,
+        "created_at": mensaje_guardado.get("creado_en")
+    }
+
+@router.patch("/tickets/{ticket_id}/mensajes/{mensaje_id}")
+def editar_mensaje_ticket(ticket_id: str, mensaje_id: str, req: MensajeChatUpdate, usuario: dict = Depends(obtener_usuario_actual)):
+    db = get_supabase()
+    # Verificar que el mensaje pertenece al usuario o es admin
+    msg_res = db.table("mensajes").select("*").eq("id", mensaje_id).eq("ticket_id", ticket_id).execute()
+    if not msg_res.data:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    msg = msg_res.data[0]
+    if str(msg.get("remitente_id")) != str(usuario.get("id")) and usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="No puedes editar un mensaje de otro usuario")
+
+    ahora = datetime.now(timezone.utc).isoformat()
+    res = db.table("mensajes").update({
+        "contenido": req.mensaje,
+        "editado_en": ahora,
+        "actualizado_en": ahora
+    }).eq("id", mensaje_id).execute()
+
+    return {"mensaje": "Mensaje editado correctamente", "id": mensaje_id, "contenido": req.mensaje}
+
+@router.delete("/tickets/{ticket_id}/mensajes/{mensaje_id}")
+def eliminar_mensaje_ticket(ticket_id: str, mensaje_id: str, usuario: dict = Depends(obtener_usuario_actual)):
+    db = get_supabase()
+    msg_res = db.table("mensajes").select("*").eq("id", mensaje_id).eq("ticket_id", ticket_id).execute()
+    if not msg_res.data:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    msg = msg_res.data[0]
+    if str(msg.get("remitente_id")) != str(usuario.get("id")) and usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="No puedes eliminar un mensaje de otro usuario")
+
+    ahora = datetime.now(timezone.utc).isoformat()
+    # Soft delete marcando eliminado_en (para que el trigger fn_auditar_mensajes lo registre o delete directo)
+    # También podemos hacer delete para que se dispare el trigger TG_OP = 'DELETE'
+    res = db.table("mensajes").delete().eq("id", mensaje_id).execute()
+
+    return {"mensaje": "Mensaje eliminado exitosamente", "id": mensaje_id}
 
 # ----------------- BASE DE CONOCIMIENTOS (FAQ) -----------------
 @router.get("/faq")
@@ -137,4 +212,3 @@ def obtener_auditoria_sesiones(usuario: dict = Depends(obtener_usuario_actual)):
     if usuario.get("rol") != "admin":
         raise HTTPException(status_code=403, detail="Solo administradores pueden consultar registros de auditoría")
     return AUDITORIA_SESIONES
-

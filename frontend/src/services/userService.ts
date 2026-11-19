@@ -21,7 +21,14 @@ export const userService = {
     });
   },
 
-  desactivarUsuario: async (id: string): Promise<any> => {
+  desactivarUsuario: async (id: string, nuevoEstado?: boolean): Promise<any> => {
+    return apiRequest(`/api/v1/users/${id}/desactivar`, {
+      method: 'PATCH',
+      body: nuevoEstado !== undefined ? JSON.stringify({ activo: nuevoEstado }) : undefined,
+    });
+  },
+
+  eliminarUsuarioDefinitivo: async (id: string): Promise<any> => {
     return apiRequest(`/api/v1/users/${id}`, {
       method: 'DELETE',
     });

@@ -14,10 +14,12 @@ export interface Notificacion {
 export interface MensajeChat {
   id: string;
   ticket_id: string;
+  remitente_id?: string;
   remitente_codigo: string;
   remitente_nombre: string;
   rol: string;
   mensaje: string;
+  editado?: boolean;
   created_at: string;
 }
 
@@ -56,6 +58,19 @@ export const interaccionService = {
     });
   },
 
+  editarMensaje: async (ticketId: string, mensajeId: string, mensaje: string): Promise<any> => {
+    return apiRequest(`/api/v1/tickets/${ticketId}/mensajes/${mensajeId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ mensaje }),
+    });
+  },
+
+  eliminarMensaje: async (ticketId: string, mensajeId: string): Promise<any> => {
+    return apiRequest(`/api/v1/tickets/${ticketId}/mensajes/${mensajeId}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Base de conocimientos FAQ
   obtenerFaqs: async (categoria?: string, busqueda?: string): Promise<FaqItem[]> => {
     const query = new URLSearchParams();
@@ -70,4 +85,3 @@ export const interaccionService = {
     return apiRequest<any[]>('/api/v1/admin/auditoria-sesiones');
   }
 };
-

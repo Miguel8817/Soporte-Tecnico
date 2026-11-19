@@ -1,125 +1,262 @@
-/* login.css */
-:root {
-    --bg-dark: #0a0e17;
-    --card-bg: rgba(16, 23, 38, 0.75);
-    --border-card: rgba(255, 255, 255, 0.08);
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-    --accent-cyan: #06b6d4;
-    --accent-purple: #8b5cf6;
-    --accent-pink: #ec4899;
-    --primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #06b6d4 100%);
-    --glow-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+/* =========================================================================
+   ESTILOS OFICIALES PARA EL LOGIN INSTITUCIONAL INABIE
+   ========================================================================= */
+
+.login-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #001736 0%, #002D62 45%, #0A192F 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
 }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: system-ui, -apple-system, sans-serif;
+.login-glow-1 {
+  position: absolute;
+  top: -10rem;
+  left: -10rem;
+  width: 28rem;
+  height: 28rem;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, transparent 70%);
+  border-radius: 9999px;
+  filter: blur(48px);
+  pointer-events: none;
 }
 
-/* Pantalla completa centrada con luces tenues de fondo */
-.login-wrapper {
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: var(--bg-dark);
-    background-image:
-        radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.12) 0%, transparent 40%);
-    padding: 1.5rem;
+.login-glow-2 {
+  position: absolute;
+  bottom: -10rem;
+  right: -10rem;
+  width: 28rem;
+  height: 28rem;
+  background: radial-gradient(circle, rgba(29, 112, 184, 0.22) 0%, transparent 70%);
+  border-radius: 9999px;
+  filter: blur(48px);
+  pointer-events: none;
 }
 
-/* Tarjeta de login con efecto cristal (Glassmorphism) */
 .login-card {
-
-    width: 100%;
-    max-width: 480px;
-    background: var(--card-bg);
-    border: 1px solid var(--border-card);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-radius: 20px;
-    padding: 4.5rem 2rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    position: relative;
+  width: 100%;
+  max-width: 28rem;
+  background: #ffffff;
+  border-radius: 1.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 20, 60, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  padding: 2.5rem;
+  position: relative;
+  z-index: 10;
+  transition: all 0.25s ease;
 }
 
-/* Borde tenue brillante arriba de la tarjeta */
-.login-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 20%;
-    right: 20%;
-    height: 1px;
-    background: var(--primary-gradient);
-    opacity: 0.8;
+.dark .login-card {
+  background: #111C2E;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 }
 
-/* Título */
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-logo-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  padding: 0.625rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 20px -4px rgba(0, 45, 98, 0.15);
+  margin-bottom: 1.25rem;
+  border: 1px solid #f1f5f9;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-logo-wrapper:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -4px rgba(0, 45, 98, 0.25);
+}
+
+.login-badge-gob {
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background-color: #f0f7ff;
+  color: #002D62;
+  border: 1px solid #c7e0fe;
+  display: inline-block;
+  margin-bottom: 0.75rem;
+}
+
+.dark .login-badge-gob {
+  background-color: rgba(29, 112, 184, 0.2);
+  color: #93c5fd;
+  border-color: rgba(29, 112, 184, 0.4);
+}
+
 .login-title {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--text-main);
-    text-align: center;
-    letter-spacing: -0.02em;
+  font-size: 1.625rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
 }
 
-.login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
+.dark .login-title {
+  color: #ffffff;
 }
 
-/* Input con borde oscuro y efecto de enfoque moderno */
+.login-subtitle {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 0.35rem;
+  line-height: 1.45;
+}
+
+.dark .login-subtitle {
+  color: #94a3b8;
+}
+
+.login-error-alert {
+  margin-bottom: 1.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 1rem;
+  background-color: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #be123c;
+  font-size: 0.78125rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  line-height: 1.4;
+}
+
+.dark .login-error-alert {
+  background-color: rgba(76, 5, 25, 0.4);
+  border-color: #9f1239;
+  color: #fda4af;
+}
+
+.login-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.login-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.dark .login-label {
+  color: #e2e8f0;
+}
+
+.login-input-container {
+  position: relative;
+}
+
 .login-input {
-    width: 100%;
-    background: rgba(10, 14, 23, 0.7);
-    border: 1px solid var(--border-card);
-    border-radius: 12px;
-    padding: 0.9rem 1.2rem;
-    color: var(--text-main);
-    font-size: 0.95rem;
-    outline: none;
-    transition: all 0.25s ease;
+  width: 100%;
+  padding: 0.95rem 1.25rem;
+  border-radius: 1.125rem;
+  background-color: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  color: #002D62;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-align: center;
+  letter-spacing: 0.16em;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
 }
 
-.login-input::placeholder {
-    color: var(--text-muted);
+.dark .login-input {
+  background-color: #0b1322;
+  border-color: #263852;
+  color: #60a5fa;
 }
 
 .login-input:focus {
-    border-color: var(--accent-pink);
-    box-shadow: 0 0 15px rgba(236, 72, 153, 0.25);
-    background: rgba(15, 23, 42, 0.9);
+  outline: none;
+  background-color: #ffffff;
+  border-color: #1D70B8;
+  box-shadow: 0 0 0 3px rgba(29, 112, 184, 0.22);
 }
 
-/* Botón con gradiente y resplandor controlado */
-.login-btn {
-    width: 100%;
-    background: var(--primary-gradient);
-    color: #ffffff;
-    border: none;
-    border-radius: 12px;
-    padding: 0.9rem;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: var(--glow-shadow);
-    transition: all 0.25s ease;
+.dark .login-input:focus {
+  background-color: #0b1322;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
-.login-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 28px rgba(236, 72, 153, 0.45);
+.login-helper-text {
+  font-size: 0.6875rem;
+  color: #64748b;
+  margin-top: 0.625rem;
+  text-align: center;
+  line-height: 1.4;
 }
 
-.login-btn:active {
-    transform: translateY(0);
+.dark .login-helper-text {
+  color: #94a3b8;
+}
+
+.login-submit-btn {
+  width: 100%;
+  padding: 0.95rem 1.25rem;
+  background: linear-gradient(135deg, #002D62 0%, #1D70B8 100%);
+  color: #ffffff;
+  font-weight: 800;
+  border-radius: 1.125rem;
+  box-shadow: 0 10px 20px -3px rgba(0, 45, 98, 0.35);
+  transition: all 0.2s ease;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-submit-btn:hover {
+  background: linear-gradient(135deg, #00224b 0%, #175d99 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px -3px rgba(0, 45, 98, 0.45);
+}
+
+.login-submit-btn:active {
+  transform: translateY(0);
+}
+
+.login-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-footer-text {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.dark .login-footer-text {
+  border-top-color: #1e293b;
+  color: #64748b;
 }

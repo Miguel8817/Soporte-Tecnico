@@ -15,6 +15,10 @@ export default function ChatTicketModal({ isOpen, ticketId, usuarioCodigo, onClo
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
 
+  // Estados para edición
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [textoEdicion, setTextoEdicion] = useState('');
+
   const cargarMensajes = async () => {
     try {
       const data = await interaccionService.obtenerMensajes(ticketId);
@@ -49,9 +53,36 @@ export default function ChatTicketModal({ isOpen, ticketId, usuarioCodigo, onClo
     }
   };
 
+  const handleIniciarEdicion = (m: MensajeChat) => {
+    setEditandoId(m.id);
+    setTextoEdicion(m.mensaje);
+  };
+
+  const handleGuardarEdicion = async (mensajeId: string) => {
+    if (!textoEdicion.trim()) return;
+    try {
+      await interaccionService.editarMensaje(ticketId, mensajeId, textoEdicion.trim());
+      setEditandoId(null);
+      setTextoEdicion('');
+      cargarMensajes();
+    } catch (err: any) {
+      alert(err.message || 'Error editando mensaje');
+    }
+  };
+
+  const handleEliminarMensaje = async (mensajeId: string) => {
+    if (!confirm('¿Deseas eliminar este mensaje?')) return;
+    try {
+      await interaccionService.eliminarMensaje(ticketId, mensajeId);
+      cargarMensajes();
+    } catch (err: any) {
+      alert(err.message || 'Error eliminando mensaje');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-[#1E293B] rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-700 flex flex-col h-[520px]">
+      <div className="bg-white dark:bg-[#1E293B] rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-700 flex flex-col h-[550px]">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
@@ -59,7 +90,7 @@ export default function ChatTicketModal({ isOpen, ticketId, usuarioCodigo, onClo
               <span>💬</span> Chat Directo &bull; Ticket #{ticketId.slice(0, 8)}
             </h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Canal de comunicación directa entre el solicitante y el técnico asignado.
+              Canal con auditoría y edición/eliminación de mensajes en tiempo real.
             </p>
           </div>
           <button
@@ -80,22 +111,83 @@ export default function ChatTicketModal({ isOpen, ticketId, usuarioCodigo, onClo
           ) : (
             mensajes.map((m) => {
               const esMio = m.remitente_codigo === usuarioCodigo;
+              const estaEditando = editandoId === m.id;
+
               return (
-                <div key={m.id} className={`flex flex-col ${esMio ? 'items-end' : 'items-start'}`}>
-                  <span className="text-[10px] text-slate-400 mb-0.5 px-1 font-semibold">
-                    {m.remitente_nombre} ({m.rol})
-                  </span>
+                <div key={m.id} className={`flex flex-col ${esMio ? 'items-end' : 'items-start'} group`}>
+                  <div className="flex items-center gap-2 mb-0.5 px-1">
+                    <span className="text-[10px] text-slate-400 font-semibold">
+                      {m.remitente_nombre} ({m.rol})
+                    </span>
+                    {m.editado && (
+                      <span className="text-[9px] text-amber-500 font-medium italic">(editado)</span>
+                    )}
+                  </div>
+
                   <div
-                    className={`max-w-[80%] p-3 rounded-2xl text-xs ${
+                    className={`max-w-[85%] p-3 rounded-2xl text-xs relative ${
                       esMio
                         ? 'bg-[#002D62] text-white rounded-tr-none'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-200 dark:border-slate-700'
                     }`}
                   >
-                    <p className="leading-relaxed">{m.mensaje}</p>
-                    <span className="text-[9px] opacity-70 block text-right mt-1">
-                      {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    {estaEditando ? (
+                      <div className="space-y-2">
+                        <textarea
+                          rows={2}
+                          value={textoEdicion}
+                          onChange={(e) => setTextoEdicion(e.target.value)}
+                          className="w-full p-2 text-xs bg-white text-slate-900 rounded-lg border border-slate-300 focus:outline-hidden"
+                        />
+                        <div className="flex justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setEditandoId(null)}
+                            className="px-2 py-0.5 text-[10px] bg-slate-300 text-slate-700 rounded-md"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleGuardarEdicion(m.id)}
+                            className="px-2 py-0.5 text-[10px] bg-emerald-600 text-white font-bold rounded-md"
+                          >
+                            Guardar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="leading-relaxed whitespace-pre-wrap">{m.mensaje}</p>
+                        <div className="flex items-center justify-between gap-3 mt-1 pt-1 border-t border-white/10 dark:border-slate-700">
+                          <span className="text-[9px] opacity-70">
+                            {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+
+                          {/* Acciones para mensajes propios */}
+                          {esMio && (
+                            <div className="flex items-center gap-1.5 opacity-90 hover:opacity-100">
+                              <button
+                                type="button"
+                                onClick={() => handleIniciarEdicion(m)}
+                                className="text-[10px] hover:underline opacity-80 hover:opacity-100 cursor-pointer"
+                                title="Editar mensaje"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleEliminarMensaje(m.id)}
+                                className="text-[10px] hover:underline text-rose-300 hover:text-rose-100 cursor-pointer"
+                                title="Eliminar mensaje"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               );
@@ -125,4 +217,3 @@ export default function ChatTicketModal({ isOpen, ticketId, usuarioCodigo, onClo
     </div>
   );
 }
-

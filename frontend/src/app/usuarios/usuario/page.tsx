@@ -83,7 +83,7 @@ export default function EmpleadoDashboard() {
   const resueltos = tickets.filter((t) => t.estado === 'resuelto' || t.estado === 'cerrado').length;
 
   return (
-    <DashboardLayout rol="empleado" nombre={usuario?.nombre} codigo={usuario?.codigo} titulo="Panel del Empleado">
+    <DashboardLayout rol="empleado" nombre={usuario?.nombre} codigo={usuario?.codigo} titulo={usuario?.nombre}>
       {/* Tarjetas de Resumen (KPIs) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white dark:bg-[#1E293B] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
@@ -186,11 +186,10 @@ export default function EmpleadoDashboard() {
               <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-bold text-slate-400">#{t.id.slice(0, 8)}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                    t.prioridad === 'critica' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400' :
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${t.prioridad === 'critica' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400' :
                     t.prioridad === 'alta' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400' :
-                    'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400'
-                  }`}>
+                      'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400'
+                    }`}>
                     {t.prioridad}
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
